@@ -1,0 +1,76 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Cretes/Updates Security groups , ec2 instances",
+    "Metadata": {
+        "About": {
+            "Author": {"value": "V Reddy"},
+            "Contact": {"Value": "vinod"},
+            "CreatedDate": {"Value": "July 15, 2020"},
+            "UpdatedDate": {"Value": "July 15, 2020"}
+         }
+    },
+    "Parameters": {
+        "VpcID": {
+            "Description": "vpc ID",
+            "Type": "String"
+        },
+        "EnvironmentName": {
+            "Description": "General Name",
+            "Type": "String"
+          },
+        "PublicSubnet1": {
+            "Description": "subnet id",
+            "Type": "String"
+        }
+    
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+        "ManagerServerRules": {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "Security Group for SSH",
+                "SecurityGroupIngress" : [ {
+                    "CidrIp" : "0.0.0.0/0",
+                    "IpProtocol": "TCP",
+                    "FromPort": "22",
+                    "ToPort": "22"
+                }
+                ],
+                "Tags" : [
+                    {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                    {"Key": "Name", "Value": { "Fn::Join": ["",["Common","-",{ "Ref": "EnvironmentName"}]]}}
+                ],
+                "VpcId" : {"Ref": "VpcID"}
+              }
+          },
+          "server1": {
+              "Type" : "AWS::EC2::Instance",
+              "Properties" : {
+                  "ImageId": "ami-09a3e40793c7092f5",
+                  "KeyName" : "dev",
+                  "InstanceType" : "t2.micro",
+                  "SecurityGroupIds" : [{"Ref": "ManagerServerRules"}],
+                  "BlockDeviceMappings" : [
+                    {
+                      "DeviceName" : "/dev/xvda",
+                      "Ebs" : { 
+                        "DeleteOnTermination": "true",
+                        "VolumeSize" : "8" 
+                      } 
+                    }
+                  ],
+                  "SubnetId": {"Ref": "PublicSubnet1"},
+                  "Tags": [
+                    {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                    {"Key": "Name", "Value": { "Fn::Join": ["",["jenkins","-",{ "Ref": "EnvironmentName"}]]}}
+                  ]
+              }
+          }
+    },
+    "Outputs": {
+
+    }
+}
