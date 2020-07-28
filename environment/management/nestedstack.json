@@ -1,0 +1,74 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Nested Stack",
+    "Metadata": {
+         "About": {
+            "Author": {"value": "V Reddy"},
+            "Contact": {"Value": "vinod"},
+            "CreatedDate": {"Value": "July 15, 2020"},
+            "UpdatedDate": {"Value": "July 15, 2020"}
+         }
+    },
+	"Parameters": {   
+    },
+	"Mappings":{
+		"CustomVariables": { 
+			"EnvironmentName": {"Value": "management"},
+			"KeyName": {"Value": "management"},
+            "RegionAZName1": { "Value" : "us-west-2a"},
+            "RegionAZName2": { "Value" : "us-west-2b"},
+			"VpcCidrBlock": {"Value": "10.10.0.0/16"},
+			"PublicCidr1": {"Value": "10.10.0.0/24"},
+			"PublicCidr2": {"Value": "10.10.1.0/24"},
+			"PrivateCidr1": {"Value": "10.10.2.0/24"},
+			"PrivateCidr2": {"Value": "10.10.3.0/24"},
+			"PrivateCidr3": {"Value": "10.10.4.0/24"},
+			"PrivateCidr4": {"Value": "10.10.5.0/24"},
+			"InstanceType": {"Value": "t2.small"},
+			"DisableApiTermination": {"Value": "false"},
+			"VpnImageID": {"Value": "ami-06f145ce0bc7aa49a"},
+			"SSLCertificateId": {"Value": "arn:aws:acm:us-west-2:844073080918:certificate/7bbc3b8c-7616-4cdc-b5c9-90b468433f0b"},
+			"ImageID": {"Value": "ami-0b1e2eeb33ce3d66f"}
+		}
+	},
+	"Resources": {
+		"VPC": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Metadata":{ "Comment": "Creates and updates the VPC, Subnets, Routes, IGW, NAT and EIP  " },
+			"Properties": {
+				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/management/cf-vpc.json",
+				"Parameters": {
+					"EnvironmentName": { "Fn::FindInMap": ["CustomVariables", "EnvironmentName", "Value"]},
+					"RegionAZName1": { "Fn::FindInMap": ["CustomVariables", "RegionAZName1", "Value"]},
+					"RegionAZName2": { "Fn::FindInMap": ["CustomVariables", "RegionAZName2", "Value"]},
+					"VpcCidrBlock": { "Fn::FindInMap": ["CustomVariables", "VpcCidrBlock", "Value"]},
+					"PublicCidr1": { "Fn::FindInMap": ["CustomVariables", "PublicCidr1", "Value"]},
+					"PublicCidr2": { "Fn::FindInMap": ["CustomVariables", "PublicCidr2", "Value"]},
+					"PrivateCidr1": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr1", "Value"]},
+					"PrivateCidr2": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr2", "Value"]},
+					"PrivateCidr3": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr3", "Value"]},
+					"PrivateCidr4": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr4", "Value"]}
+				}
+			}
+		},
+		"Ec2Instances": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Metadata":{ "Comment": "Creates and updates the VPC, Subnets, Routes, IGW, NAT and EIP  " },
+			"Properties": {
+				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/management/cf-management-instances.json",
+				"Parameters": {
+					"EnvironmentName": { "Fn::FindInMap": ["CustomVariables", "EnvironmentName", "Value"]},
+					"VPC": {"Fn::GetAtt": ["VPC", "Outputs.VPC"]},
+					"PublicSubnet1A": {"Fn::GetAtt": ["VPC", "Outputs.PublicSubnet1"]},
+					"PublicSubnet1C": {"Fn::GetAtt": ["VPC", "Outputs.PublicSubnet2"]},
+					"KeyName": { "Fn::FindInMap": ["CustomVariables", "KeyName", "Value"]},
+					"VpnImageID": { "Fn::FindInMap": ["CustomVariables", "VpnImageID", "Value"]},
+					"SSLCertificateId": { "Fn::FindInMap": ["CustomVariables", "SSLCertificateId", "Value"]},
+					"InstanceType": { "Fn::FindInMap": ["CustomVariables", "InstanceType", "Value"]},
+					"DisableApiTermination": { "Fn::FindInMap": ["CustomVariables", "DisableApiTermination", "Value"]},
+					"ImageID": { "Fn::FindInMap": ["CustomVariables", "ImageID", "Value"]}
+				}
+			}
+		}
+	}
+}

@@ -15,15 +15,15 @@
 		"CustomVariables": { 
 			"EnvironmentName": {"Value": "dev"},
 			"KeyName": {"Value": "test1"},
-            "RegionAZName1": { "Value" : "us-west-1a"},
-            "RegionAZName2": { "Value" : "us-west-1c"},
-			"VpcCidrBlock": {"Value": "10.8.0.0/16"},
-			"PublicCidr1": {"Value": "10.8.0.0/24"},
-			"PublicCidr2": {"Value": "10.8.1.0/24"},
-			"PrivateCidr1": {"Value": "10.8.2.0/24"},
-			"PrivateCidr2": {"Value": "10.8.3.0/24"},
-			"PrivateCidr3": {"Value": "10.8.4.0/24"},
-			"PrivateCidr4": {"Value": "10.8.5.0/24"},
+            "RegionAZName1": { "Value" : "us-west-2a"},
+            "RegionAZName2": { "Value" : "us-west-2b"},
+			"VpcCidrBlock": {"Value": "10.10.0.0/16"},
+			"PublicCidr1": {"Value": "10.10.0.0/24"},
+			"PublicCidr2": {"Value": "10.10.1.0/24"},
+			"PrivateCidr1": {"Value": "10.10.2.0/24"},
+			"PrivateCidr2": {"Value": "10.10.3.0/24"},
+			"PrivateCidr3": {"Value": "10.10.4.0/24"},
+			"PrivateCidr4": {"Value": "10.10.5.0/24"},
 			"InstanceType": {"Value": "t2.medium"},
 			"DisableApiTermination": {"Value": "false"}
 		}
@@ -33,7 +33,7 @@
 			"Type": "AWS::CloudFormation::Stack",
 			"Metadata":{ "Comment": "Creates and updates the VPC, Subnets, Routes, IGW, NAT and EIP  " },
 			"Properties": {
-				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/Dev/cf-vpc.json",
+				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/management/cf-vpc.json",
 				"Parameters": {
 					"EnvironmentName": { "Fn::FindInMap": ["CustomVariables", "EnvironmentName", "Value"]},
 					"RegionAZName1": { "Fn::FindInMap": ["CustomVariables", "RegionAZName1", "Value"]},
@@ -50,13 +50,20 @@
 		},
 		"Ec2Instances": {
 			"Type": "AWS::CloudFormation::Stack",
-			"Metadata":{ "Comment": "Creates and updates the Ec2 instances and Security groups associated to ec2  " },
+			"Metadata":{ "Comment": "Creates and updates the VPC, Subnets, Routes, IGW, NAT and EIP  " },
 			"Properties": {
-				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/Dev/cf-ec2.json",
+				"TemplateURL": "https://tekleaders-cloudformation.s3-us-west-1.amazonaws.com/management/cf-management-instances.json",
 				"Parameters": {
 					"EnvironmentName": { "Fn::FindInMap": ["CustomVariables", "EnvironmentName", "Value"]},
-					"VpcID": { "Fn::GetAtt": ["VPC", "Outputs.VpcID"] },
-					"PublicSubnet1": { "Fn::GetAtt": ["VPC", "Outputs.PublicSubnet1"] }
+					"RegionAZName1": { "Fn::FindInMap": ["CustomVariables", "RegionAZName1", "Value"]},
+					"RegionAZName2": { "Fn::FindInMap": ["CustomVariables", "RegionAZName2", "Value"]},
+					"VpcCidrBlock": { "Fn::FindInMap": ["CustomVariables", "VpcCidrBlock", "Value"]},
+					"PublicCidr1": { "Fn::FindInMap": ["CustomVariables", "PublicCidr1", "Value"]},
+					"PublicCidr2": { "Fn::FindInMap": ["CustomVariables", "PublicCidr2", "Value"]},
+					"PrivateCidr1": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr1", "Value"]},
+					"PrivateCidr2": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr2", "Value"]},
+					"PrivateCidr3": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr3", "Value"]},
+					"PrivateCidr4": { "Fn::FindInMap": ["CustomVariables", "PrivateCidr4", "Value"]}
 				}
 			}
 		}

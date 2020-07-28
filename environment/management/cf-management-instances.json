@@ -1,0 +1,258 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Access Management (OpenVPN and LDAP) Ec2 Instances ",
+        "Metadata": {
+            "About": {
+                "Author": {"value": "Vinod Reddy"},
+                "Contact": {"Value": "vreddy@tekleaders.com"},
+                "CreatedDate": {"Value": "July 25, 2020"},
+                "UpdatedDate": {"Value": "July 25, 2020"}
+            }
+        },
+        "Parameters": {
+            "EnvironmentName": {
+                "Description": "Env Name",
+                "Type": "String"
+            },
+            "VPC": {
+                "Description": "VPC ID",
+                "Type": "String"
+            },
+            "PublicSubnet1A": {
+                "Description": "Public Zone A Subnet ID",
+                "Type": "AWS::EC2::Subnet::Id"
+            },
+            "PublicSubnet1C": {
+                "Description": "Public Zone C Subnet ID",
+                "Type": "AWS::EC2::Subnet::Id"
+            },
+            "KeyName": {
+                "Description": "Keyfile name that needs to be added to the instances ",
+                "Type": "String"
+            },
+            "VpnImageID": {
+                "Description": "Image ID",
+                "Type": "String"
+            },
+            "SSLCertificateId": {
+                "Description": "SSL Certificate arn",
+                "Type": "String"
+            },
+            "InstanceType": {
+                "Description": "Instance Type",
+                "Type": "String"
+            },
+            "DisableApiTermination":{
+                "Description": "Api Termination",
+                "Type": "String"
+            },
+            "ImageID": {
+                "Description": "Api Termination",
+                "Type": "String"
+            }
+        },
+        "Conditions": {
+            
+        },
+        "Resources": {
+            "OpenVpnElbSg": {
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                    "GroupDescription" : "Jenkins  SG configuration",
+                    "SecurityGroupIngress" : [
+                        {
+                            "IpProtocol": "tcp",
+                            "FromPort": "443",
+                            "ToPort": "443",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "VpcId": { "Ref": "VPC"},
+                    "Tags": [
+                      {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                      {"Key": "Role", "Value": "security-groups"},
+                      {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","vpn-elb"]]}}
+                    ]
+                }
+            },
+            "OpenVpnSg": {
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                "GroupDescription" : "Jenkins  SG configuration",
+                "SecurityGroupIngress" : [ 
+                    {
+                        "IpProtocol": "udp",
+                        "FromPort": "1194",
+                        "ToPort": "1194",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "943",
+                        "ToPort": "943",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+    
+                ],
+                "VpcId": { "Ref": "VPC"},
+                "Tags": [
+                      {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                      {"Key": "Role", "Value": "security-groups"},
+                      {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","openvpn"]]}}
+                  ]
+              }
+            },
+            "ManagedServerRules": {
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                "GroupDescription" : " common security groups",
+                "SecurityGroupIngress" : [ 
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "SourceSecurityGroupId": {"Ref": "OpenVpnSg"}
+                    }
+    
+                ],
+                "VpcId": { "Ref": "VPC"},
+                "Tags": [
+                      {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                      {"Key": "Role", "Value": "security-groups"},
+                      {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","managedserver"]]}}
+                  ]
+              }
+            },
+            "JenkinsSg": {
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                "GroupDescription" : "Jenkins  SG configuration",
+                "SecurityGroupIngress" : [ 
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "SourceSecurityGroupId": {"Ref": "OpenVpnSg"}
+                    }
+    
+                ],
+                "VpcId": { "Ref": "VPC"},
+                "Tags": [
+                      {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                      {"Key": "Role", "Value": "security-groups"},
+                      {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","jenkins"]]}}
+                  ]
+              }
+            },
+            "NetworkInterface1": {
+                "Type": "AWS::EC2::NetworkInterface",
+                "Properties": {
+                    "SubnetId": {"Ref": "PublicSubnet1A"},
+                    "Description": "Interface for Openvpn",
+                    "GroupSet": [ {"Ref": "OpenVpnSg"}],
+                    "SourceDestCheck" : "true",
+                    "Tags": [
+                                {"Key": "Role", "Value": "Managementservers"},
+                                {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                                {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","NetworkInterface1"]]}}
+                            ]
+                }
+            },
+            "EipOpenVPN": {
+                "Type": "AWS::EC2::EIP",
+                "Properties": {
+                  "Domain": { "Ref": "EnvironmentName" }
+                }
+            },
+            "NetworkInterfaceEIPAssociation1": {
+                "Type" : "AWS::EC2::EIPAssociation",
+                "Properties": {
+                    "AllocationId": { "Fn::GetAtt" : [ "EipOpenVPN", "AllocationId" ]},
+                    "NetworkInterfaceId": {"Ref": "NetworkInterface1"}
+                }
+            },
+            "OpenVpn": {
+                "Type": "AWS::EC2::Instance",
+                "Metadata":{ "Comment": "OpenVpn Server on AvailabilityZone west-1a" },
+                "Properties": {
+                    "KeyName": {"Ref":"KeyName"},
+                    "DisableApiTermination": {"Ref": "DisableApiTermination"},
+                    "ImageId": { "Ref": "VpnImageID" },
+                    "InstanceType": {"Ref": "InstanceType"},
+                    "Monitoring": "true",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/xvda",
+                            "Ebs": {
+                                "DeleteOnTermination": "true",
+                                "VolumeSize": "20"
+                            }
+                        }
+                    ],
+                    "NetworkInterfaces" : [ { "NetworkInterfaceId" : {"Ref" : "NetworkInterface1"}, "DeviceIndex" : "0" }],
+                    "Tags": [
+                        {"Key": "Role", "Value": "Managementservers"},
+                        {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                        {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","openvpn"]]}}
+                    ]
+                }
+            },
+            "NetworkInterface2": {
+                "Type": "AWS::EC2::NetworkInterface",
+                "Properties": {
+                    "SubnetId": {"Ref": "PublicSubnet1A"},
+                    "Description": "Interface for Jenkins",
+                    "GroupSet": [{"Ref": "JenkinsSg"},{"Ref": "ManagedServerRules"}],
+                    "SourceDestCheck" : "true",
+                    "Tags": [
+                                {"Key": "Role", "Value": "Managementservers"},
+                                {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                                {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","Jenkins"]]}}
+                            ]
+                }
+            },
+            "EipJenkins": {
+                "Type": "AWS::EC2::EIP",
+                "Properties": {
+                  "Domain": { "Ref": "EnvironmentName" }
+                }
+            },
+            "NetworkInterfaceEIPAssociation2": {
+                "Type" : "AWS::EC2::EIPAssociation",
+                "Properties": {
+                    "AllocationId": { "Fn::GetAtt" : [ "EipJenkins", "AllocationId" ]},
+                    "NetworkInterfaceId": {"Ref": "NetworkInterface2"}
+                }
+            },
+            "Jenkins": {
+                "Type": "AWS::EC2::Instance",
+                "Metadata":{ "Comment": "Jenkins Master Server on AvailabilityZone west-1a" },
+                "Properties": {
+                    "KeyName": {"Ref":"KeyName"},
+                    "DisableApiTermination": {"Ref": "DisableApiTermination"},
+                    "ImageId": { "Ref": "ImageID" },
+                    "InstanceType": {"Ref": "InstanceType"},
+                    "Monitoring": "true",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/xvda",
+                            "Ebs": {
+                                "DeleteOnTermination": "true",
+                                "VolumeSize": "20"
+                            }
+                        }
+                    ],
+                    "NetworkInterfaces" : [ { "NetworkInterfaceId" : {"Ref" : "NetworkInterface2"}, "DeviceIndex" : "0" }],
+                    "Tags": [
+                        {"Key": "Role", "Value": "Managementservers"},
+                        {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                        {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","jenkins-master"]]}}
+                    ]
+                }
+            }    
+        },
+        "Outputs": {
+            
+        }
+
+}
