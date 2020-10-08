@@ -21,6 +21,10 @@
         "PublicSubnet1": {
             "Description": "subnet id",
             "Type": "String"
+        },
+        "PrivateSubnet1": {
+            "Description": "subnet id",
+            "Type": "String"
         }
     
     },
@@ -46,29 +50,40 @@
                 "VpcId" : {"Ref": "VpcID"}
               }
           },
-          "server1": {
-              "Type" : "AWS::EC2::Instance",
-              "Properties" : {
-                  "ImageId": "ami-09a3e40793c7092f5",
-                  "KeyName" : "dev",
-                  "InstanceType" : "t2.micro",
-                  "SecurityGroupIds" : [{"Ref": "ManagerServerRules"}],
-                  "BlockDeviceMappings" : [
+          "Jenkins": {
+            "Type": "AWS::EC2::Instance",
+            "Metadata":{ "Comment": "Jenkins Slave Server on AvailabilityZone west-1a" },
+            "Properties":{
+                "ImageId": { "Ref": "ImageID" },
+                "BlockDeviceMappings": [
                     {
-                      "DeviceName" : "/dev/xvda",
-                      "Ebs" : { 
-                        "DeleteOnTermination": "true",
-                        "VolumeSize" : "8" 
-                      } 
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": "20"
+                        }
                     }
-                  ],
-                  "SubnetId": {"Ref": "PublicSubnet1"},
-                  "Tags": [
-                    {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
-                    {"Key": "Name", "Value": { "Fn::Join": ["",["jenkins","-",{ "Ref": "EnvironmentName"}]]}}
-                  ]
-              }
-          }
+                ],
+                "InstanceType": {"Ref": "InstanceType"},
+                "SubnetId": { "Ref": "PrivateSubnet3A" },
+                "Monitoring": "true",
+                "KeyName": {"Ref":"KeyName"},
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "DisableApiTermination": {"Ref": "DisableApiTermination"},
+                "SecurityGroupIds": [{"Ref": "ManagedServerRules"}, {"Ref": "JenkinsSg"}],
+                "UserData": {"Fn::Base64": {"Fn::Join": ["", [
+                    "#!/bin/bash -ex\n",
+                    "cd /opt\n",
+                    "mkdir jenkins\n",
+                    "chmod 751 jenkins\n",
+                    "chown ansible:ansible jenkins", "\n"
+                ]]}},
+              "Tags": [
+                  {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
+                  {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","jenkins-slave"]]}}
+              ]
+            }
+        }
     },
     "Outputs": {
 

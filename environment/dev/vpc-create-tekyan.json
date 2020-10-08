@@ -1,0 +1,172 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+    
+    },
+    "Mappings": {
+        "CustomVariables": {
+            "EnvironmentName": {"Value": "tekyantra-cf"},
+            "VpcCidr": {"Value":"10.18.0.0/16"},
+            "Availabilizone2a" : {"Value":"us-west-2a"},
+            "Availabilizone2b" : {"Value":"us-west-2b"},
+            "PublicSubnet1": {"Value": "10.18.0.0/24"},
+            "PublicSubnet2": {"Value": "10.18.1.0/24"},
+            "PrivateSubnet1": {"Value": "10.18.2.0/24"},
+            "PrivateSubnet2": {"Value": "10.18.3.0/24"}
+        }
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+        "CreateVPC": {
+            "Type" : "AWS::EC2::VPC",
+            "Properties" : {
+                "CidrBlock" : { "Fn::FindInMap" : ["CustomVariables", "VpcCidr", "Value"] },
+                "EnableDnsHostnames" : "true",
+                "EnableDnsSupport" : "true",
+                "InstanceTenancy" : "default",
+                "Tags": [
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", ["vpc", { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }] ] }},
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }}
+                ]
+            }
+        },
+        "subnetPub1": {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : { "Fn::FindInMap" : ["CustomVariables", "Availabilizone2a", "Value"] },
+                "CidrBlock" : { "Fn::FindInMap" : ["CustomVariables", "PublicSubnet1", "Value"] },
+                "VpcId" : {"Ref": "CreateVPC"},
+                "Tags": [
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", ["public_subnet1", { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }] ] }},
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }}
+                ]
+            }
+        },
+        "subnetPub2": {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : "us-west-2b",
+                "CidrBlock" : { "Fn::FindInMap" : ["CustomVariables", "PublicSubnet2", "Value"] },
+                "VpcId" : {"Ref": "CreateVPC"},
+                "Tags": [
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", ["public_subnet2", { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }] ] }},
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }}
+                ]
+            }
+        },
+        "subnetPvt1": {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : "us-west-2a",
+                "CidrBlock" : { "Fn::FindInMap" : ["CustomVariables", "PrivateSubnet1", "Value"] },
+                "VpcId" : {"Ref": "CreateVPC"},
+                "Tags": [
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }},
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", [{ "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }, "private_subnet1"] ] }}
+                ]
+            }
+        },
+        "subnetPvt2": {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : "us-west-2b",
+                "CidrBlock" : { "Fn::FindInMap" : ["CustomVariables", "PrivateSubnet2", "Value"] },
+                "VpcId" : {"Ref": "CreateVPC"},
+                "Tags": [
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }},
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", [{ "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }, "private_subnet2"] ] }}
+                ]
+            }
+        },
+        "CreateIGW": {
+            "Type" : "AWS::EC2::InternetGateway",
+            "Properties" : {
+                "Tags" : [ 
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }},
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", [{ "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }, "IGW"] ] }}
+                ]
+            }
+        },
+        "AttachIgwToVpc": {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+                "InternetGatewayId" : {"Ref": "CreateIGW"},
+                "VpcId" : {"Ref": "CreateVPC"}
+            }
+        },
+        "Route1": {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : {
+                "Tags" : [ 
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }},
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", [{ "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }, "Route1"] ] }}
+                ],
+                "VpcId" : {"Ref": "CreateVPC"}
+            }
+        },
+        "IgwRoute": {
+            "Type" : "AWS::EC2::Route",
+            "DependsOn": "CreateIGW",
+            "Properties" : {
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "GatewayId" : {"Ref": "CreateIGW"},
+                "RouteTableId" : {"Ref": "Route1"}
+            }
+        },
+        "Subnet1RouteAssociation": {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref": "Route1"},
+                "SubnetId" : {"Ref": "subnetPub1"}
+              }
+        },
+        "Subnet2RouteAssociation": {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref": "Route1"},
+                "SubnetId" : {"Ref": "subnetPub2"}
+              }
+        },
+        "Route2": {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : {
+                "Tags" : [ 
+                    {"Key": "Environment", "Value": { "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }},
+                    {"Key": "Name", "Value": { "Fn::Join" : [ "-", [{ "Fn::FindInMap" : ["CustomVariables", "EnvironmentName", "Value"] }, "Route2"] ] }}
+                ],
+                "VpcId" : {"Ref": "CreateVPC"}
+            }
+        },
+        "Subnet3RouteAssociation": {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref": "Route2"},
+                "SubnetId" : {"Ref": "subnetPvt1"}
+              }
+        },
+        "Subnet4RouteAssociation": {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref": "Route2"},
+                "SubnetId" : {"Ref": "subnetPvt2"}
+              }
+        }
+          
+
+          
+          
+          
+                
+
+    },
+    "Outputs": {
+
+    }
+}

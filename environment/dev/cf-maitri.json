@@ -1,0 +1,322 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "My First AWS CloudFormation Project",
+      "Metadata": {
+          "About":{
+              "Author": "Maitri",
+              "e-mail": "maitri.modi109@gmail.com"
+          }
+  
+      },
+      "Parameters": {
+      
+      },
+      "Mappings": {
+          "Variables":{
+              "EnviroName": {"Value": "dev"},
+              "VPCCidrBlock": {"Value": "10.20.0.0/16"},
+              "SubnetCidr1": {"Value": "10.20.0.0/24"},
+              "SubnetCidr2": {"Value": "10.20.1.0/24"},
+              "SubnetCidr3": {"Value": "10.20.2.0/24"},
+              "SubnetCidr4": {"Value": "10.20.3.0/24"},
+              "AvailabilityZone1": {"Value": "us-west-2a"},
+              "AvailabilityZone2": {"Value": "us-west-2b"},
+              "AvailabilityZone3": {"Value": "us-west-2c"},
+              "Ec2ImageID": {"Value": "ami-0873b46c45c11058d"}
+          }
+      },
+      "Conditions": {
+  
+      },
+      "Resources": {
+          "VPC": {
+                  "Type": "AWS::EC2::VPC",
+                  "Properties": {
+                      "CidrBlock": {"Fn::FindInMap": ["Variables", "VPCCidrBlock", "Value"]},
+                      "EnableDnsHostnames": "true",
+                      "EnableDnsSupport": "true",
+                      "InstanceTenancy": "default",
+                      "Tags": [
+                          {"Key": "Name", "Value": "Maitri-Vpc"},
+                          {"Key": "EnviroName", "Value": {"Fn::FindInMap": ["Variables", "EnviroName", "Value"]}}
+                      ]
+                  }
+                
+              },
+  
+          "Subnet1":{
+                  "Type" : "AWS::EC2::Subnet",
+                  "Properties" : {
+                      "AvailabilityZone" : {"Fn::FindInMap": ["Variables", "AvailabilityZone1", "Value"]},
+                      "CidrBlock" : {"Fn::FindInMap": ["Variables", "SubnetCidr1", "Value"]},
+                      "VpcId" : {"Ref": "VPC"},
+                      "Tags" : [
+                          {"Key": "Name", "Value": {"Fn::Join":["-", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"PublicSubnet1"]]}},
+                          {"Key": "Network", "Value": "PublicNetwork"}
+                      ]
+                  }
+              },
+          "Subnet2":{
+              "Type" : "AWS::EC2::Subnet",
+              "Properties" : {
+                  "AvailabilityZone" : {"Fn::FindInMap": ["Variables", "AvailabilityZone2", "Value"]},
+                  "CidrBlock" : {"Fn::FindInMap": ["Variables", "SubnetCidr2", "Value"]},
+                  "VpcId" : {"Ref": "VPC"},
+                  "Tags" : [
+                      {"Key": "Name", "Value": {"Fn::Join":["-", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"PublicSubnet2"]]}},
+                      {"Key": "Network", "Value": "PublicNetwork"}
+                  ]
+              }
+          },
+          "Subnet3":{
+              "Type" : "AWS::EC2::Subnet",
+              "Properties" : {
+                  "AvailabilityZone" : {"Fn::FindInMap": ["Variables", "AvailabilityZone3", "Value"]},
+                  "CidrBlock" : {"Fn::FindInMap": ["Variables", "SubnetCidr3", "Value"]},
+                  "VpcId" : {"Ref": "VPC"},
+                  "Tags" : [
+                      {"Key": "Name", "Value": {"Fn::Join":[" ", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"PrivateSubnet1"]]}},
+                      {"Key": "Network", "Value": "PrivateNetwork"}
+                  ]
+              }
+          },
+          "Subnet4":{
+              "Type" : "AWS::EC2::Subnet",
+              "Properties" : {
+                  "AvailabilityZone" : {"Fn::FindInMap": ["Variables", "AvailabilityZone1", "Value"]},
+                  "CidrBlock" : {"Fn::FindInMap": ["Variables", "SubnetCidr4", "Value"]},
+                  "VpcId" : {"Ref": "VPC"},
+                  "Tags" : [
+                      {"Key": "Name", "Value": {"Fn::Join":[" ", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"PrivateSubnet2"]]}},
+                      {"Key": "Network", "Value": "PrivateNetwork"}
+                  ]
+              }
+      },
+      "Gateway2Internet":{
+          "Type" : "AWS::EC2::InternetGateway",
+          "Properties" : {
+              "Tags" : [
+                  {"Key": "Name", "Value": {"Fn::Join":[" ", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"IGW"]]}}
+               ]
+            }
+        },
+        "AttachInternetGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Metadata":{
+                "comment": "Attaching the INternet Gateway to thr Main VPC"
+            },
+            "Properties":{
+                "VpcId": {"Ref": "VPC"},
+                "InternetGatewayId": {"Ref": "Gateway2Internet"}
+            }
+        },
+        "Route1": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {"Ref": "VPC"},
+                "Tags": [
+                  {"Key": "Environment", "Value": { "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"] }},
+                  {"Key": "Role", "Value":"publicNetwork"},
+                  {"Key": "Name", "Value": { "Fn::Join": ["",["Route1","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
+               ]
+                
+            }
+        },
+        "InternetGatewayRoute": {
+          "Type": "AWS::EC2::Route",
+          "DependsOn": "AttachInternetGateway",
+          "Properties": {
+            "RouteTableId": {"Ref": "Route1"},
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": {"Ref": "Gateway2Internet"}
+          }
+        },
+        "RouteTableAssociationPublic1":{
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {"Ref": "Subnet1"},
+            "RouteTableId": {"Ref": "Route1"}
+          }
+        },
+        "RouteTableAssociationPublic2":{
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties":{
+            "SubnetId":{"Ref": "Subnet2"},
+            "RouteTableId":{"Ref": "Route1"}
+          }
+        },
+        "Route2":{
+          "Type": "AWS::EC2::RouteTable",
+          "Properties":{
+            "VpcId":{"Ref": "VPC"},
+            "Tags":[
+                {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+                {"Key": "Role", "Value":"publicNetwork"},
+                {"Key": "Name", "Value": { "Fn::Join": [" ",["Route2","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
+             ]
+          }
+        },
+        "NATGateway": {
+          "DependsOn": "AttachInternetGateway",
+          "Type": "AWS::EC2::NatGateway",
+          "Metadata":{
+            "Comment": "It creates NAT Gateway to enable isntances in private subnet to connect to AWS services"
+                    },
+          "Properties": {
+            "AllocationId": {"Fn::GetAtt" : ["EIP1A", "AllocationId"]},
+            "SubnetId": {"Ref" : "Subnet1"}
+          }
+        },
+        "EIP1A": {
+          "Type": "AWS::EC2::EIP",
+          "Properties": {
+            "Domain": { "Fn::FindInMap" : ["Variables", "EnviroName", "Value"]}
+          }
+        },
+        "NatGatewayRoute": {
+          "Type": "AWS::EC2::Route",
+          "DependsOn": "AttachInternetGateway",
+          "Properties": {
+            "RouteTableId": {"Ref": "Route2"},
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "NatGatewayId": { "Ref": "NATGateway"}
+          }
+        },
+        "RouteTableAssociationPrivate1":{
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {"Ref": "Subnet3"},
+            "RouteTableId": {"Ref": "Route2"}
+          }
+        },
+        "RouteTableAssociationPrivate2": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {"Ref": "Subnet4"},
+            "RouteTableId": {"Ref": "Route2"}
+          }
+     },
+     "ManagerServerRules": {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+          "GroupDescription" : "Security Group for SSH",
+          "SecurityGroupIngress" : [ {
+              "CidrIp" : "10.10.0.97/32",
+              "IpProtocol": "TCP",
+              "FromPort": "22",
+              "ToPort": "22"
+          }
+          ],
+          "Tags" : [
+              {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+              {"Key": "Name", "Value": { "Fn::Join": ["",["ManagerServerRules","-",{ "Fn::FindInMap":["Variables", "EnviroName", "Value"]}]]}}
+          ],
+          "VpcId":{"Ref": "VPC"}
+        }
+    },
+    "JenkinsSlaveSg": {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+          "GroupDescription" : "Security Group for SSH",
+          "SecurityGroupIngress" : [ {
+              "SourceSecurityGroupId" : "sg-061868cf3a52ce91e",
+              "IpProtocol": "TCP",
+              "FromPort": "22",
+              "ToPort": "22"
+          }
+          ],
+          "Tags" : [
+              {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+              {"Key": "Name", "Value": { "Fn::Join": ["",["JenkinsSlaveSg","-",{ "Fn::FindInMap":["Variables", "EnviroName", "Value"]}]]}}
+          ],
+          "VpcId":{"Ref": "VPC"}
+        }
+    },
+    "apisg": {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+          "GroupDescription" : "Security Group for SSH",
+          "SecurityGroupIngress" : [ 
+            {
+              "SourceSecurityGroupId" : {"Ref": "JenkinsSlaveSg"},
+              "IpProtocol": "TCP",
+              "FromPort": "22",
+              "ToPort": "22"
+            },
+            {
+              "CidrIp" : "10.10.0.97/32",
+              "IpProtocol": "TCP",
+              "FromPort": "3000",
+              "ToPort": "3000"
+            }
+          ],
+          "Tags" : [
+              {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+              {"Key": "Name", "Value": { "Fn::Join": ["",["JenkinsSlaveSg","-",{ "Fn::FindInMap":["Variables", "EnviroName", "Value"]}]]}}
+          ],
+          "VpcId":{"Ref": "VPC"}
+        }
+    },
+     "Jenkins": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata":{ "Comment": "Jenkins Slave Server on AvailabilityZone west-1a" },
+      "Properties":{
+          "ImageId": { "Fn::FindInMap" : ["Variables", "Ec2ImageID", "Value"]},
+          "BlockDeviceMappings": [
+              {
+                  "DeviceName": "/dev/xvda",
+                  "Ebs": {
+                      "DeleteOnTermination": "true",
+                      "VolumeSize": "20"
+                  }
+              }
+          ],
+          "InstanceType": "t3.small",
+          "SubnetId": { "Ref": "Subnet3" },
+          "KeyName": "dev",
+          "InstanceInitiatedShutdownBehavior": "stop",
+          "SecurityGroupIds": [{"Ref": "ManagerServerRules"},{"Ref": "JenkinsSlaveSg"}],
+          "UserData": {"Fn::Base64": {"Fn::Join": ["", [
+              "#!/bin/bash -ex\n",
+              "cd /opt\n",
+              "mkdir jenkins\n",
+              "chmod 751 jenkins\n",
+              "chown ec2-user:ec2-user jenkins", "\n"
+          ]]}},
+        "Tags": [
+          {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+          {"Key": "Name", "Value": { "Fn::Join": ["",["JenkinsSlave","-",{ "Fn::FindInMap":["Variables", "EnviroName", "Value"]}]]}}
+        ]
+      }
+  },
+  "Api": {
+    "Type": "AWS::EC2::Instance",
+    "Metadata":{ "Comment": "Jenkins Slave Server on AvailabilityZone west-1a" },
+    "Properties":{
+        "ImageId": { "Fn::FindInMap" : ["Variables", "Ec2ImageID", "Value"]},
+        "BlockDeviceMappings": [
+            {
+                "DeviceName": "/dev/xvda",
+                "Ebs": {
+                    "DeleteOnTermination": "true",
+                    "VolumeSize": "20"
+                }
+            }
+        ],
+        "InstanceType": "t3.small",
+        "SubnetId": { "Ref": "Subnet3" },
+        "KeyName": "dev",
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "SecurityGroupIds": [{"Ref": "ManagerServerRules"},{"Ref": "apisg"}],
+      "Tags": [
+        {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
+        {"Key": "Name", "Value": { "Fn::Join": ["",["api","-",{ "Fn::FindInMap":["Variables", "EnviroName", "Value"]}]]}}
+      ]
+    }
+}
+
+},
+      "Outputs": {
+  
+      }
+  }

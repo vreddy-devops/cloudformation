@@ -34,10 +34,6 @@
                 "Description": "Image ID",
                 "Type": "String"
             },
-            "SSLCertificateId": {
-                "Description": "SSL Certificate arn",
-                "Type": "String"
-            },
             "InstanceType": {
                 "Description": "Instance Type",
                 "Type": "String"
@@ -55,26 +51,6 @@
             
         },
         "Resources": {
-            "OpenVpnElbSg": {
-                "Type" : "AWS::EC2::SecurityGroup",
-                "Properties" : {
-                    "GroupDescription" : "Jenkins  SG configuration",
-                    "SecurityGroupIngress" : [
-                        {
-                            "IpProtocol": "tcp",
-                            "FromPort": "443",
-                            "ToPort": "443",
-                            "CidrIp": "0.0.0.0/0"
-                        }
-                    ],
-                    "VpcId": { "Ref": "VPC"},
-                    "Tags": [
-                      {"Key": "Environment", "Value": {"Ref": "EnvironmentName"}},
-                      {"Key": "Role", "Value": "security-groups"},
-                      {"Key": "Name", "Value":  { "Fn::Join": ["",[{"Ref": "EnvironmentName"},"-","vpn-elb"]]}}
-                    ]
-                }
-            },
             "OpenVpnSg": {
                 "Type" : "AWS::EC2::SecurityGroup",
                 "Properties" : {
@@ -90,6 +66,18 @@
                         "IpProtocol": "tcp",
                         "FromPort": "943",
                         "ToPort": "943",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
                         "CidrIp": "0.0.0.0/0"
                     }
     

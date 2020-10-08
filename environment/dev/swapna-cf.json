@@ -1,0 +1,227 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+  
+    },
+    "Parameters": {
+  
+    },
+    "Mappings": {
+  
+    },
+    "Conditions": {
+  
+    },
+    "Resources": {
+      "CreateVPC": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.1.0.0/16",
+          "EnableDnsHostnames": "true",
+          "EnableDnsSupport": "true",
+          "InstanceTenancy": "default",
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "cfvpc"
+            }
+          ]
+        }
+      },
+      "subnetPub1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": "us-west-2a",
+          "CidrBlock": "10.1.0.0/24",
+          "VpcId": { "Ref": "CreateVPC" },
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "subnet-pub1"
+            }
+          ]
+        }
+      },
+      "subnetPub2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": "us-west-2b",
+          "CidrBlock": "10.1.1.0/24",
+          "VpcId": { "Ref": "CreateVPC" },
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "subnet-pub2"
+            }
+          ]
+        }
+      },
+      "subnetPvt1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": "us-west-2a",
+          "CidrBlock": "10.1.2.0/24",
+          "VpcId": { "Ref": "CreateVPC" },
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "subnet-pvt1"
+            }
+          ]
+        }
+      },
+      "subnetPvt2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": "us-west-2b",
+          "CidrBlock": "10.1.3.0/24",
+          "VpcId": { "Ref": "CreateVPC" },
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "subnet-pvt2"
+            }
+          ]
+        }
+      },
+      "CreateIGW": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "mycf"
+            },
+            {
+              "Key": "Name",
+              "Value": "igw-1"
+            }
+          ]
+        }
+      },
+      "AttachIgwToVpc": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "InternetGatewayId": { "Ref": "CreateIGW" },
+          "VpcId": { "Ref": "CreateVPC" }
+        }
+      },
+      "Route1": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId" : {"Ref": "CreateVPC"},
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "my-cf"
+            },
+            {
+              "Key": "Name",
+              "Value": "Route-1"
+            }
+          ]
+        }
+      },
+      
+      "IgwRoute": {
+        "Type": "AWS::EC2::Route",
+        "DependsOn": "CreateIGW",
+        "Properties": {
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "CreateIGW" },
+          "RouteTableId": { "Ref": "Route1" }
+        }
+      },
+      "Subnet1RouteAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "Route1" },
+          "SubnetId": { "Ref": "subnetPub1" }
+        }
+      },
+      "Subnet2RouteAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "Route1" },
+          "SubnetId": { "Ref": "subnetPub2" }
+        }
+      },
+      "Route2": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "my-cf"
+            },
+            {
+              "Key": "Name",
+              "Value": "Route-2"
+            }
+          ],
+          "VpcId" : {"Ref": "CreateVPC"}
+        }
+      },
+      "VpcNATGateway": {
+        "Type": "AWS::EC2::NatGateway",
+        "DependsOn": "CreateIGW",
+        "Properties": {
+          "AllocationId": {"Fn::GetAtt" : ["NATEIP", "AllocationId"]},
+          "SubnetId": "subnetPub1"
+        }
+      },
+      "NATEIP": {
+        "Type": "AWS::EC2::EIP",
+        "DependsOn": "CreateVPC",
+        "Properties": {
+          "Domain": "vpc"
+        }
+      },
+      "NatRoute": {
+        "Type": "AWS::EC2::Route",
+        "DependsOn": "VpcNATGateway",
+        "Properties": {
+          "RouteTableId": { "Ref": "Route2" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "NatGatewayId": { "Ref": "VpcNATGateway" }
+        }
+      },
+      "Subnet3RouteAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "Route2" },
+          "SubnetId": { "Ref": "subnetPvt1" }
+        }
+      },
+      "Subnet4RouteAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "Route2" },
+          "SubnetId": { "Ref": "subnetPvt2" }
+        }
+      }
+    },
+  
+        "Outputs": { }
+  }
