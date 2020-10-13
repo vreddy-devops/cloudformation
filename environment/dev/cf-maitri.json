@@ -22,7 +22,7 @@
               "AvailabilityZone1": {"Value": "us-west-2a"},
               "AvailabilityZone2": {"Value": "us-west-2b"},
               "AvailabilityZone3": {"Value": "us-west-2c"},
-              "Ec2ImageID": {"Value": "ami-0873b46c45c11058d"}
+              "Ec2ImageID": {"Value": "ami-0528a5175983e7f28"}
           }
       },
       "Conditions": {
@@ -117,7 +117,7 @@
                 "Tags": [
                   {"Key": "Environment", "Value": { "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"] }},
                   {"Key": "Role", "Value":"publicNetwork"},
-                  {"Key": "Name", "Value": { "Fn::Join": ["",["Route1","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
+                  {"Key": "Name", "Value": { "Fn::Join": ["",["Route1-Public","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
                ]
                 
             }
@@ -152,7 +152,7 @@
             "Tags":[
                 {"Key": "Environment", "Value": { "Fn::FindInMap":["Variables", "EnviroName", "Value"]}},
                 {"Key": "Role", "Value":"publicNetwork"},
-                {"Key": "Name", "Value": { "Fn::Join": [" ",["Route2","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
+                {"Key": "Name", "Value": { "Fn::Join": [" ",["Route2-Private","-",{ "Fn::FindInMap" : [ "Variables", "EnviroName", "Value"]}]]}}
              ]
           }
         },
@@ -201,7 +201,7 @@
       "Properties" : {
           "GroupDescription" : "Security Group for SSH",
           "SecurityGroupIngress" : [ {
-              "CidrIp" : "10.10.0.97/32",
+              "CidrIp" : "10.10.0.99/32",
               "IpProtocol": "TCP",
               "FromPort": "22",
               "ToPort": "22"
@@ -219,7 +219,7 @@
       "Properties" : {
           "GroupDescription" : "Security Group for SSH",
           "SecurityGroupIngress" : [ {
-              "SourceSecurityGroupId" : "sg-061868cf3a52ce91e",
+              "CidrIp" : "10.10.0.112/32",
               "IpProtocol": "TCP",
               "FromPort": "22",
               "ToPort": "22"
@@ -242,12 +242,6 @@
               "IpProtocol": "TCP",
               "FromPort": "22",
               "ToPort": "22"
-            },
-            {
-              "CidrIp" : "10.10.0.97/32",
-              "IpProtocol": "TCP",
-              "FromPort": "3000",
-              "ToPort": "3000"
             }
           ],
           "Tags" : [
@@ -271,7 +265,7 @@
                   }
               }
           ],
-          "InstanceType": "t3.small",
+          "InstanceType": "t2.micro",
           "SubnetId": { "Ref": "Subnet3" },
           "KeyName": "dev",
           "InstanceInitiatedShutdownBehavior": "stop",
@@ -303,7 +297,7 @@
                 }
             }
         ],
-        "InstanceType": "t3.small",
+        "InstanceType": "t2.micro",
         "SubnetId": { "Ref": "Subnet3" },
         "KeyName": "dev",
         "InstanceInitiatedShutdownBehavior": "stop",
