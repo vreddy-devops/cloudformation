@@ -13,12 +13,12 @@
       },
       "Mappings": {
           "Variables":{
-              "EnviroName": {"Value": "dev"},
-              "VPCCidrBlock": {"Value": "10.20.0.0/16"},
-              "SubnetCidr1": {"Value": "10.20.0.0/24"},
-              "SubnetCidr2": {"Value": "10.20.1.0/24"},
-              "SubnetCidr3": {"Value": "10.20.2.0/24"},
-              "SubnetCidr4": {"Value": "10.20.3.0/24"},
+              "EnviroName": {"Value": "integration"},
+              "VPCCidrBlock": {"Value": "10.21.0.0/16"},
+              "SubnetCidr1": {"Value": "10.21.0.0/24"},
+              "SubnetCidr2": {"Value": "10.21.1.0/24"},
+              "SubnetCidr3": {"Value": "10.21.2.0/24"},
+              "SubnetCidr4": {"Value": "10.21.3.0/24"},
               "AvailabilityZone1": {"Value": "us-west-2a"},
               "AvailabilityZone2": {"Value": "us-west-2b"},
               "AvailabilityZone3": {"Value": "us-west-2c"},
@@ -37,7 +37,7 @@
                       "EnableDnsSupport": "true",
                       "InstanceTenancy": "default",
                       "Tags": [
-                          {"Key": "Name", "Value": "Maitri-Vpc"},
+                          {"Key": "Name", "Value":  {"Fn::Join":["-", [{"Fn::FindInMap": ["Variables", "EnviroName", "Value"]},"VPC"]]}},
                           {"Key": "EnviroName", "Value": {"Fn::FindInMap": ["Variables", "EnviroName", "Value"]}}
                       ]
                   }
